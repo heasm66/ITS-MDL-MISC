@@ -1,0 +1,25 @@
+<DEFINE PRINT-HEX (WORD)
+   <REPEAT ((BIT 32) NUM)
+     <SET NUM <CHTYPE <GETBITS .WORD <BITS 4 .BIT>> FIX>>
+     <COND (<L? .NUM 10> <PRIN1 .NUM>)
+           (<=? .NUM 10> <PRINC "A">)
+           (<=? .NUM 11> <PRINC "B">)
+           (<=? .NUM 12> <PRINC "C">)
+           (<=? .NUM 13> <PRINC "D">)
+           (<=? .NUM 14> <PRINC "E">)
+           (<=? .NUM 15> <PRINC "F">)>
+     <SET BIT <- .BIT 4>>
+     <COND (<L? .BIT 0> <PRINC " "> <RETURN>)>>>
+
+<DEFINE HEXDUMP-EXPORT (FILE "AUX" (BUF <UVECTOR 1>) (CNT 0) CHN)
+   <SET CHN <OPEN "READB" .FILE>>
+   <COND (.CHN ;"If CHN is FALSE, bad OPEN: return the FALSE"
+     <CRLF>
+     <REPEAT ((NUM 0))
+       <SET NUM <READB .BUF .CHN '<RETURN>>>
+       <COND (<0? .NUM> <RETURN>)>
+       <PRINT-HEX <GET .BUF 1>>
+       <SET CNT <+ 1 .CNT>>
+       <COND (<==? 0 <MOD .CNT 6>> <CRLF>)>>
+    <PRINC "END OF FILE"> <CRLF>
+    <CLOSE .CHN>)>>
