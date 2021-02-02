@@ -100,15 +100,16 @@
    <COND (.CHN ;"If CHN is FALSE, bad OPEN: return the FALSE"
      <PRINC "         OCTAL         HALF-WORDS        SQUOZE  SIXBIT  ASCII">
      <CRLF>
-     <REPEAT ()
-       <==? 1 <READB .BUF .CHN '<RETURN>>>
-         <PRINT-FILE-OFFSET .CNT>
-         <PRINT-OCTAL <GET .BUF 1>>
-         <PRINT-HALF <GET .BUF 1>>
-         <PRINT-SQUOZE <GET .BUF 1>>
-         <PRINT-SIXBIT <GET .BUF 1>>
-         <PRINT-ASCII <GET .BUF 1>>
-         <CRLF>
-         <SET CNT <+ 1 .CNT>>>
+     <REPEAT ((NUM 0))
+       <SET NUM <READB .BUF .CHN '<RETURN>>>
+       <COND (<0? .NUM> <RETURN>)>
+       <PRINT-FILE-OFFSET .CNT>
+       <PRINT-OCTAL <GET .BUF 1>>
+       <PRINT-HALF <GET .BUF 1>>
+       <PRINT-SQUOZE <GET .BUF 1>>
+       <PRINT-SIXBIT <GET .BUF 1>>
+       <PRINT-ASCII <GET .BUF 1>>
+       <CRLF>
+       <SET CNT <+ 1 .CNT>>>
     <PRINC "END OF FILE"> <CRLF>
     <CLOSE .CHN>)>>
