@@ -1,0 +1,114 @@
+"MDL version of the LISP program OD. https://github.com/PDP-10/its/blob/master/src/libdoc/od.3"
+ 
+<DEFINE PRINT-FILE-OFFSET (WORD)
+   <REPEAT ((BIT 15))
+     <PRIN1 <CHTYPE <GETBITS .WORD <BITS 3 .BIT>> FIX>>
+     <SET BIT <- .BIT 3>>
+     <COND (<L? .BIT 0> <PRINC ":  "> <RETURN>)>>>
+
+<DEFINE PRINT-OCTAL (WORD)
+   <REPEAT ((BIT 33))
+     <PRIN1 <CHTYPE <GETBITS .WORD <BITS 3 .BIT>> FIX>>
+     <SET BIT <- .BIT 3>>
+     <COND (<L? .BIT 0> <PRINC "  "> <RETURN>)>>>
+
+<DEFINE PRINT-HALF-OCTAL (HALFWORD)
+   <REPEAT ((BIT 15)(ZERO T) NUM)
+     <SET NUM <CHTYPE <GETBITS .HALFWORD <BITS 3 .BIT>> FIX>>
+     <COND (<OR <NOT <0? .NUM>> <NOT .ZERO>>
+       <PRINC .NUM>
+       <SET ZERO <>>)>
+     <SET BIT <- .BIT 3>>
+     <COND (<L? .BIT 0>
+       <COND (.ZERO <PRINC "0">)>
+       <RETURN>)>>>
+
+<DEFINE PRINT-HALF (WORD "AUX" HALF)
+   <SET HALF <CHTYPE <GETBITS .WORD <BITS 18 18>> FIX>>
+   <COND (<NOT <0? <CHTYPE <ANDB *400000* .HALF> FIX>>>
+     <SET HALF <* <- .HALF *1000000*> -1>>
+     <COND (<G? .HALF *77777*> <PRINC "-">)
+           (<G? .HALF *7777*> <PRINC " -">)
+           (<G? .HALF *777*> <PRINC "  -">)
+           (<G? .HALF *77*> <PRINC "   -">)
+           (<G? .HALF *7*> <PRINC "    -">)
+           (ELSE <PRINC "     -">)>)
+   (ELSE
+     <COND (<G? .HALF *77777*> <PRINC " ">)
+           (<G? .HALF *7777*> <PRINC "  ">)
+           (<G? .HALF *777*> <PRINC "   ">)
+           (<G? .HALF *77*> <PRINC "    ">)
+           (<G? .HALF *7*> <PRINC "     ">)
+           (ELSE <PRINC "      ">)>)>
+   <PRINT-HALF-OCTAL .HALF>
+   <PRINC ",,">
+   <SET HALF <CHTYPE <GETBITS .WORD <BITS 18 0>> FIX>>
+   <COND (<NOT <0? <CHTYPE <ANDB *400000* .HALF> FIX>>>
+     <SET HALF <* <- .HALF *1000000*> -1>>
+     <PRINC "-">
+     <PRINT-HALF-OCTAL .HALF>
+     <COND (<G? .HALF *77777*> <PRINC "  ">)
+           (<G? .HALF *7777*> <PRINC "   ">)
+           (<G? .HALF *777*> <PRINC "    ">)
+           (<G? .HALF *77*> <PRINC "     ">)
+           (<G? .HALF *7*> <PRINC "      ">)
+           (ELSE <PRINC "       ">)>)
+   (ELSE
+     <PRINT-HALF-OCTAL .HALF>
+     <COND (<G? .HALF *77777*> <PRINC "   ">)
+           (<G? .HALF *7777*> <PRINC "    ">)
+           (<G? .HALF *777*> <PRINC "     ">)
+           (<G? .HALF *77*> <PRINC "      ">)
+           (<G? .HALF *7*> <PRINC "       ">)
+           (ELSE <PRINC "        ">)>)>>
+
+<SETG SQUOZE-CHARS <UVECTOR !\  !\0 !\1 !\2 !\3 !\4 !\5 !\6 !\7 !\8
+                            !\9 !\A !\B !\C !\D !\E !\F !\G !\H !\I
+                            !\J !\K !\L !\M !\N !\O !\P !\Q !\R !\S
+                            !\T !\U !\V !\W !\X !\Y !\Z !\. !\$ !\%>>
+
+<DEFINE PRINT-SQUOZE (WORD "AUX" (STR "......") SQW)
+  <SET SQW <CHTYPE <GETBITS .WORD <BITS 32>> FIX>>
+   <REPEAT ((POS 6))
+     <PUT .STR .POS <GET ,SQUOZE-CHARS <+ 1 <MOD .SQW 40>>>>
+     <SET POS <- .POS 1>>
+     <SET SQW </ .SQW 40>>
+     <COND (<=? .POS 0> <PRINC .STR> <PRINC "  "> <RETURN>)>>>
+
+<DEFINE PRINT-SIXBIT (WORD "AUX" (STR "......") CH)
+   <REPEAT ((BIT 30)(POS 1))
+     <SET CH <+ 32 <CHTYPE <GETBITS .WORD <BITS 6 .BIT>> FIX>>>
+     <COND (<L? .CH 32> <SET CH 46>)>
+     <COND (<=? .CH 127> <SET CH 46>)>
+     <PUT .STR .POS <ASCII .CH>>
+     <SET POS <+ .POS 1>>
+     <SET BIT <- .BIT 6>>
+     <COND (<L? .BIT 0> <PRINC .STR> <PRINC "  "> <RETURN>)>>>
+
+<DEFINE PRINT-ASCII (WORD "AUX" (STR ".....") CH)
+   <REPEAT ((BIT 29) (POS 1))
+     <SET CH <CHTYPE <GETBITS .WORD <BITS 7 .BIT>> FIX>>
+     <COND (<L? .CH 32> <SET CH 46>)>
+     <COND (<=? .CH 127> <SET CH 46>)>
+     <PUT .STR .POS <ASCII .CH>>
+     <SET BIT <- .BIT 7>>
+     <SET POS <+ .POS 1>>
+     <COND (<L? .BIT 0> <PRINC .STR> <PRINC " "> <RETURN>)>>>
+
+<DEFINE PRINT-BINARY (FILE "AUX" (BUF <UVECTOR 1>) (CNT 0) CHN)
+   <SET CHN <OPEN "READB" .FILE>>
+   <COND (.CHN ;"If CHN is FALSE, bad OPEN: return the FALSE"
+     <PRINC "         OCTAL         HALF-WORDS        SQUOZE  SIXBIT  ASCII">
+     <CRLF>
+     <REPEAT ()
+       <==? 1 <READB .BUF .CHN '<RETURN>>>
+         <PRINT-FILE-OFFSET .CNT>
+         <PRINT-OCTAL <GET .BUF 1>>
+         <PRINT-HALF <GET .BUF 1>>
+         <PRINT-SQUOZE <GET .BUF 1>>
+         <PRINT-SIXBIT <GET .BUF 1>>
+         <PRINT-ASCII <GET .BUF 1>>
+         <CRLF>
+         <SET CNT <+ 1 .CNT>>>
+    <PRINC "END OF FILE"> <CRLF>
+    <CLOSE .CHN>)>>
