@@ -1,0 +1,75 @@
+"******************************************************************
+ * HEXDUMP-EXPORT Print hex-content of specified file to screen.  *
+ *                Each WORD (36-bits) is a group of 9 hex-chars.  *
+ * HEXDUMP-IMPORT Converts file, saved from HEXDUMP-EXPORT, back  *
+ *                into original file.                             *
+ *                                                                *
+ * 1. HEXDUMP-EXPORT file and copy from screen into external file *
+ * 2. Paste hex-chars into an emacs file:                         *
+ *         :EMACS <DIR>;<NAME1> <NAME2>                           *
+ *         CTRL-X, CTRL-S to save file.                           *
+ * 3. HEXDUMP-IMPORT emacs-file to recreate original file.        *
+ *                                                                *
+ * (Note: Only paste about 2000 lines at a time into EMACS.)      *
+ *                                                                *
+ * If content doesn't fit into one file, modify HEXDUMP-IMPORT to *
+ * import and merge from multiple source files.                   *
+ ******************************************************************"
+<DEFINE PRINT-HEX (WORD)
+   <REPEAT ((BIT 32) NUM)
+     <SET NUM <CHTYPE <GETBITS .WORD <BITS 4 .BIT>> FIX>>
+     <COND (<L? .NUM 10> <PRIN1 .NUM>)
+           (<=? .NUM 10> <PRINC "A">)
+           (<=? .NUM 11> <PRINC "B">)
+           (<=? .NUM 12> <PRINC "C">)
+           (<=? .NUM 13> <PRINC "D">)
+           (<=? .NUM 14> <PRINC "E">)
+           (<=? .NUM 15> <PRINC "F">)>
+     <SET BIT <- .BIT 4>>
+     <COND (<L? .BIT 0> <PRINC " "> <RETURN>)>>>
+
+<DEFINE HEXDUMP-EXPORT (FILE "AUX" (BUF <UVECTOR 1>) (CNT 0) CHN)
+   <SET CHN <OPEN "READB" .FILE>>
+   <COND (.CHN ;"If CHN is FALSE, bad OPEN: return the FALSE"
+     <CRLF>
+     <REPEAT ((NUM 0))
+       <SET NUM <READB .BUF .CHN '<RETURN>>>
+       <COND (<0? .NUM> <RETURN>)>
+       <PRINT-HEX <GET .BUF 1>>
+       <SET CNT <+ 1 .CNT>>
+       <COND (<==? 0 <MOD .CNT 6>> <CRLF>)>>
+    <PRINC "END OF FILE"> <CRLF>
+    <CLOSE .CHN>)>>
+
+<DEFINE HEXDUMP-IMPORT (INFILE OUTFILE 
+    "AUX" (WORD 0) CHR (CNT 0) (BUF <UVECTOR 1>) 
+	INCHN OUTCHN NUM (POS 1))
+  <SET OUTCHN <OPEN "PRINTB" .OUTFILE>>
+  ;"============================================
+    = Repeat this section if you want to merge =
+    = multiple source files into one outfile.  =
+    ============================================"
+  <SET INCHN <OPEN "READ" .INFILE>>
+  <COND (.INCHN ;"If CHN is FALSE, bad OPEN: return the FALSE"
+    <REPEAT ()
+      <SET CHR <READCHR .INCHN '<RETURN>>>
+      <SET NUM <ASCII .CHR>>
+      <COND (<OR <AND <G=? .NUM 65> <L=? .NUM 70>>
+                 <AND <G=? .NUM 48> <L=? .NUM 57>>>
+        <COND (<G=? .NUM 65> <SET NUM <- .NUM 55>>)
+              (ELSE <SET NUM <- .NUM 48>>)>
+        <SET WORD <PUTBITS .WORD <BITS 4 <* <- 9 .POS> 4>> .NUM>> 
+        <SET POS <+ 1 .POS>>
+        <COND (<==? .POS 10> 
+          <SET POS 1>
+          <COND (<=? <MOD .CNT 1000> 0>
+            <COND (<0? .CNT> <PRINC "STARTING...">)
+                  (ELSE <PRIN1 .CNT> <PRINC "...">)>)>
+          <PUT .BUF 1 .WORD>
+          <PRINTB .BUF .OUTCHN>
+          <SET CNT <+ 1 .CNT>>)>)>>
+  <CLOSE .INCHN>)>
+  ;"============================================"
+  <PRINC "END OF FILE"> <CRLF>
+  <CLOSE .OUTCHN>>
+  
